@@ -14,7 +14,6 @@ NUM_ORDERS = 80
 TICKETS_PER_ORDER_RANGE = (1, 5) 
 
 # --- LOCAL FOCUS CONFIGURATION (San Antonio, TX Area) ---
-# Define the specific cities/towns where all your events will take place.
 LOCAL_CITIES = [
     'San Antonio', 
     'New Braunfels', 
@@ -75,7 +74,7 @@ def dict_to_sql_inserts(table_name, data):
 # 1.1. user Table
 print("--- Generating user data ---")
 user_data = []
-roles = ['organizer', 'attendee', 'admin'] # Added 'admin' role
+roles = ['organizer', 'attendee', 'admin'] 
 statuses = ['Active', 'Suspended'] # Using schema status examples
 for i in range(1, NUM_USERS + 1):
     user_id = i
@@ -114,13 +113,13 @@ for i, name in enumerate(category_names):
     category_ids.append(category_id)
     category_data.append({
         'category_id': category_id,
-        'name': name # CORRECTED: matches 'name' column in schema
+        'name': name 
     })
 
 # =================================================================
 # 2. EVENT-RELATED TABLES (Requires user and venue FKs)
 # =================================================================
-# --- NEW FUNCTION TO GENERATE MEANINGFUL DESCRIPTION ---
+# --- FUNCTION TO GENERATE MEANINGFUL DESCRIPTION ---
 def generate_meaningful_description(title, category_name):
     base_description = f"Join us for {title}, a premier event in the heart of San Antonio! "
     
@@ -141,7 +140,7 @@ def generate_meaningful_description(title, category_name):
         # Fallback for generic events
         description = base_description + fake.paragraph(nb_sentences=3) 
         
-    # Ensure the description doesn't exceed 200 characters (as defined in your schema notes)
+    # Ensure the description doesn't exceed 200 characters
     return description[:200]
 
 # 2.1. event Table
@@ -181,7 +180,7 @@ for i in range(1, NUM_EVENTS + 1):
         'organizer_id': random.choice(organizer_ids),
         'venue_id': chosen_venue_id,
         'title': event_title,
-        'description': custom_description, # <-- NOW USES MEANINGFUL DATA
+        'description': custom_description, # Use the generated meaningful description
         'start_time': start_time.strftime('%Y-%m-%d %H:%M:%S'),
         'end_time': end_time.strftime('%Y-%m-%d %H:%M:%S'),
         'capacity': random.randint(50, int(chosen_venue_capacity * 0.9)), 
@@ -260,7 +259,7 @@ for order in order_data:
         
         for _ in range(num_tickets):
             ticket_data.append({
-                'ticket_id': f"TKT-{ticket_counter:05d}", # CORRECTED: Changed 'unique_id' to 'ticket_id'
+                'ticket_id': f"TKT-{ticket_counter:05d}", # Unique ticket ID
                 'order_id': order['order_id'],
                 'event_id': event_id,
                 'user_id': order['user_id'],
