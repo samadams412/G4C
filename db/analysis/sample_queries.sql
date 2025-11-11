@@ -47,3 +47,8 @@ FROM
     orders o
 WHERE 
     o.user_id = 5; -- 5. Find all Orders for a specific attendee 
+
+-- Attempting to insert a ticket for the Canceled event (e.g., ID 1003)
+-- This should fail due to the trigger check_event_status_before_sale
+INSERT INTO ticket (ticket_id, order_id, event_id, user_id, price, status)
+VALUES ('TKT-TRIGGERTEST', 5001, 1003, 1, 25.00, 'Purchased');
