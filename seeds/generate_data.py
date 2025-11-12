@@ -7,11 +7,11 @@ from datetime import datetime, timedelta
 fake = Faker('en_US') 
 
 # --- Configuration ---
-NUM_USERS = 50
-NUM_VENUES = 20
-NUM_EVENTS = 100
-NUM_ORDERS = 80
-TICKETS_PER_ORDER_RANGE = (1, 5) 
+NUM_USERS = 500     
+NUM_VENUES = 50     
+NUM_EVENTS = 200   
+NUM_ORDERS = 1000    
+TICKETS_PER_ORDER_RANGE = (1, 5)
 
 # --- LOCAL FOCUS CONFIGURATION (San Antonio, TX Area) ---
 LOCAL_CITIES = [
@@ -155,7 +155,14 @@ for i in range(1, NUM_EVENTS + 1):
     event_id = i + 1000
     event_ids.append(event_id)
     
-    start_time = fake.date_time_between(start_date='-1y', end_date='+2y', tzinfo=None)
+    # --- NEW DATE SKEWING LOGIC ---
+    # 70% chance to be a future event (1 month to 2 years out)
+    if random.random() < 0.7:
+        start_time = fake.date_time_between(start_date='+1M', end_date='+2y', tzinfo=None)
+    # 30% chance to be a past event (1 year ago to 1 month ago)
+    else:
+        start_time = fake.date_time_between(start_date='-1y', end_date='-1M', tzinfo=None)
+        
     end_time = start_time + timedelta(hours=random.randint(2, 8))
     
     chosen_venue_id = random.choice(venue_ids)
@@ -163,28 +170,30 @@ for i in range(1, NUM_EVENTS + 1):
     
     event_title = fake.catch_phrase() + ' Festival'
     
-    # --- STEP 1: Determine a primary category for the description ---
-    # We must pick a category *before* adding the event to the event_data list,
-    # so we can use it to generate the description.
+    # --- STEP 1 & 2: Category and Description (Unchanged) ---
     random_category_id = random.choice(category_ids)
-    
-    # Find the category name
     category_info = next(c for c in category_data if c['category_id'] == random_category_id)
     primary_category_name = category_info['name'] 
-
-    # --- STEP 2: Generate the custom description ---
     custom_description = generate_meaningful_description(event_title, primary_category_name)
     
+    # --- NEW STATUS SKEWING LOGIC ---
+    if start_time < datetime.now():
+        # If the event is in the past: mostly Completed (80%)
+        status_choice = random.choice(['Completed'] * 8 + ['Canceled', 'Draft'] * 1) 
+    else:
+        # If the event is in the future: mostly Published (70%)
+        status_choice = random.choice(['Published'] * 7 + ['Draft'] * 2 + ['Canceled'] * 1)
+        
     event_data.append({
         'event_id': event_id,
         'organizer_id': random.choice(organizer_ids),
         'venue_id': chosen_venue_id,
         'title': event_title,
-        'description': custom_description, # Use the generated meaningful description
+        'description': custom_description, 
         'start_time': start_time.strftime('%Y-%m-%d %H:%M:%S'),
         'end_time': end_time.strftime('%Y-%m-%d %H:%M:%S'),
         'capacity': random.randint(50, int(chosen_venue_capacity * 0.9)), 
-        'status': random.choice(['Draft', 'Published', 'Completed', 'Canceled']) # Use schema status examples
+        'status': status_choice # Use the new logic
     })
     
     # NOTE: The logic for populating event_category (Section 2.2) 
@@ -212,6 +221,14 @@ for event in event_data:
             })
             seen_event_categories.add(key)
 
+# Create a small, random list of events that will receive the majority of ticket sales
+NUM_POPULAR_EVENTS = 20 # 20 out of 200 events
+popular_event_ids = random.sample([e['event_id'] for e in event_data if e['status'] == 'Published'], k=NUM_POPULAR_EVENTS)
+
+# Create a list of available event IDs, weighted to favor popular events.
+# 70% of tickets will go to 10% of the events.
+AVAILABLE_TICKET_EVENTS = popular_event_ids * 7 + [e['event_id'] for e in event_data] * 3
+
 # =================================================================
 # 3. ORDER & TICKET TABLES (Requires user, event FKs)
 # =================================================================
@@ -219,7 +236,7 @@ for event in event_data:
 # 3.1. orders Table
 print("--- Generating orders data ---")
 order_data = []
-order_statuses = ['Completed', 'Pending', 'Refunded']
+order_statuses_weighted = ['Completed'] * 7 + ['Pending'] * 2 + ['Refunded'] * 1 
 attendee_ids = [u['user_id'] for u in user_data if u['role'] == 'attendee']
 
 for i in range(1, NUM_ORDERS + 1):
@@ -231,8 +248,14 @@ for i in range(1, NUM_ORDERS + 1):
         'user_id': random.choice(attendee_ids) if attendee_ids else random.choice(user_ids),
         'total_amount': round(random.uniform(20.0, 500.0), 2),
         'order_date': fake.date_time_between(start_date='-6m', end_date='now', tzinfo=None).strftime('%Y-%m-%d %H:%M:%S'),
-        'status': random.choice(order_statuses)
+        'status': random.choice(order_statuses_weighted)
     })
+
+# 3.2. ticket Table
+print("--- Generating ticket data ---")
+ticket_data = []
+ticket_statuses = ['Purchased', 'Reserved', 'Refunded']
+ticket_counter = 1
 
 # 3.2. ticket Table
 print("--- Generating ticket data ---")
@@ -245,19 +268,26 @@ for order in order_data:
     if order['status'] == 'Completed':
         num_tickets = random.randint(*TICKETS_PER_ORDER_RANGE)
         
-        # Select an event that is *not* cancelled
-        available_events = [e for e in event_data if e['status'] != 'Canceled']
-        if not available_events: continue
+        # The AVAILABLE_TICKET_EVENTS list is weighted to favor 'hit' events.
+        
+        available_ticket_events_no_cancel = [
+            eid for eid in AVAILABLE_TICKET_EVENTS 
+            if next(e for e in event_data if e['event_id'] == eid)['status'] != 'Canceled'
+        ]
+
+        if not available_ticket_events_no_cancel: continue
             
-        event_id = random.choice([e['event_id'] for e in available_events])
+        event_id = random.choice(available_ticket_events_no_cancel) # <-- Uses the highly skewed list
         
         if order['total_amount'] > 0 and num_tickets > 0:
+            # Calculate price per ticket based on order total
             price_per_ticket = round(order['total_amount'] / num_tickets, 2)
         else:
             price_per_ticket = 0.00
             
         
         for _ in range(num_tickets):
+            # Ensure the price is set correctly for this ticket
             ticket_data.append({
                 'ticket_id': f"TKT-{ticket_counter:05d}", # Unique ticket ID
                 'order_id': order['order_id'],
@@ -297,7 +327,7 @@ sql_output += dict_to_sql_inserts("orders", order_data)
 sql_output += dict_to_sql_inserts("ticket", ticket_data)
 
 # 4.2. Save to a file
-output_filename = 'dummy_data.sql'
+output_filename = 'db/dummy_data.sql'
 try:
     with open(output_filename, 'w', encoding='utf-8') as f:
         f.write(sql_output)
