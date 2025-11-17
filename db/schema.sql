@@ -1,7 +1,3 @@
--- =================================================================
--- SCHEMA.SQL
--- Database Schema for Eventify Local Event Ticketing System (MySQL)
--- =================================================================
 
 -- 1. DATABASE SETUP
 -- Create the database if it doesn't exist and switch to it.
@@ -23,14 +19,15 @@ DROP TABLE IF EXISTS event;
 DROP TABLE IF EXISTS venue;
 DROP TABLE IF EXISTS user;
 
--- =================================================================
+
 -- 2. CORE TABLES (No FKs)
--- =================================================================
+
 
 -- 2.1. USER Table (PK: user_id)
 CREATE TABLE user (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     role ENUM('Attendee', 'Organizer', 'Admin') NOT NULL 
         COMMENT 'Defines user type',
@@ -62,9 +59,9 @@ CREATE TABLE category (
     CONSTRAINT UQ_CategoryName UNIQUE (name)
 ) ENGINE=InnoDB;
 
--- =================================================================
+
 -- 3. INTERMEDIATE TABLES (Requires user and venue FKs)
--- =================================================================
+
 
 -- 3.1. EVENT Table (PK: event_id)
 CREATE TABLE event (
@@ -85,7 +82,7 @@ CREATE TABLE event (
     -- Constraints
     CONSTRAINT CHK_EventTime CHECK (start_time < end_time),
     CONSTRAINT CHK_EventCapacity CHECK (capacity >= 0),
-    -- Note: The check capacity <= venue.capacity is typically enforced by application logic or a trigger, not standard MySQL CHECK constraint.
+    -- Note: The check capacity <= venue.capacity is typically enforced by application logic or a trigger.
 
     -- Status constraint
     CONSTRAINT CHK_EventStatus CHECK (status IN ('Draft', 'Published', 'Completed', 'Canceled'))
@@ -104,9 +101,9 @@ CREATE TABLE event_category (
     CONSTRAINT FK_ECEventID FOREIGN KEY (event_id) REFERENCES event(event_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- =================================================================
+
 -- 4. DEPENDENT TABLES (Requires event and user FKs)
--- =================================================================
+
 
 -- 4.1. ORDERS Table (PK: order_id)
 CREATE TABLE orders (
