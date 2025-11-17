@@ -1,3 +1,5 @@
+USE eventify_db;
+
 INSERT INTO `user` (`user_id`, `first_name`, `last_name`, `email`, `role`, `status`) VALUES
     (1, 'Michael', 'Clark', 'gomezcarlos@example.com', 'Attendee', 'Suspended'),
     (2, 'Amy', 'Preston', 'dreese@example.com', 'Organizer', 'Suspended'),
