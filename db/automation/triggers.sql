@@ -21,7 +21,5 @@ BEGIN
     END IF;
 END //
 
-DELIMITER ;
-
 -- **Documentation: This trigger ensures that tickets cannot be sold for events that are either 'Completed' or 'Canceled'. 
 -- **Functionality: It activates before any INSERT operation on the `ticket` table, checks the status of the associated event, and raises an error if the event is not in a valid state for ticket sales.
