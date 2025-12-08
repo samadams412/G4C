@@ -1,6 +1,6 @@
 # Eventify Database by G4C
 
-##- Navigation
+## - Navigation
     - "../seeds/.." contains the necessary files python needed to generate dummy data programatically.
     - "../db/.." contains all *.sql* files.
       - "../db/analysis/.." contains several *.sql* files each containing example queries, seperated by domain.
@@ -8,7 +8,7 @@
       - "../db/dummy_data.sql" is a generated dummy data file resulting from one of the scripts in */seeds.*
       - "../db/schema.sql contains the database schema."
 
-##- Setup 
+## - Setup 
   To run locally, clone the project and in your console, run 
       ***mysql -u root -p;***
       ***source db/schema.sql;***
