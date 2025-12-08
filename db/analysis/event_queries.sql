@@ -60,3 +60,21 @@ WHERE
     AND e.start_time > NOW()
 ORDER BY
     e.start_time ASC;
+
+# Query with a Subquery - Find users who bought tickets for the event with the most sales
+SELECT
+    u.first_name,
+    u.last_name,
+    u.email
+FROM
+    user u
+JOIN ticket t ON u.user_id = t.user_id
+WHERE
+    t.event_id = (
+        -- Subquery: Finds the event_id with the highest count of tickets sold
+        SELECT event_id
+        FROM ticket
+        GROUP BY event_id
+        ORDER BY COUNT(ticket_id) DESC
+        LIMIT 1
+    );
