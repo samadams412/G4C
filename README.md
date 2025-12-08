@@ -9,9 +9,9 @@
       - "../db/schema.sql contains the database schema."
 
 ## - Setup 
-  To run locally, clone the project and in your console, run 
-      ***mysql -u root -p;***
-      ***source db/schema.sql;***
-      \*Any of your *.py* scripts in *seeds* to generate data (optional)*
-      ***source db/dummy_data.sql*** (or run one of the *.py* scripts in *seeds* to generate new dummy data).
+ To run locally, clone the project and in your console, run 
+    - ***mysql -u root -p;***
+    - ***source db/schema.sql;***
+    - \*Any of your *.py* scripts in *seeds* to generate data (optional)*
+    - ***source db/dummy_data.sql*** (or run one of the *.py* scripts in *seeds* to generate new dummy data).
     
