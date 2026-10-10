@@ -1,0 +1,65 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/docker-init/02-triggers.sql:/docker-entrypoint-initdb.d/02-triggers.sql:ro
+      - ./db/automation/procedures.sql:/docker-entrypoint-initdb.d/03-procedures.sql:ro
+      - ./db/analysis/view.sql:/docker-entrypoint-initdb.d/04-view.sql:ro
+      - ./db/dummy_data.sql:/docker-entrypoint-initdb.d/05-dummy_data.sql:ro
+    ports:
+      # dev-only: exposes MySQL to the host for local inspection. Remove for a db that's
+      # reachable only on the Docker network.
+      - "${DB_HOST_PORT:-3306}:3306"
+    networks:
+      - eventify
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  api:
+    build: ./api
+    restart: unless-stopped
+    environment:
+      PORT: ${API_PORT:-4000}
+      DB_HOST: db
+      DB_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "${API_PORT:-4000}:${API_PORT:-4000}"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - eventify
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    environment:
+      PORT: ${WEB_PORT:-3000}
+      API_URL: http://api:${API_PORT:-4000}
+    ports:
+      - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
+    depends_on:
+      - api
+    networks:
+      - eventify
+
+networks:
+  eventify:
+
+volumes:
+  db_data:
