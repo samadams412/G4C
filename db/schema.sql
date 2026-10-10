@@ -31,8 +31,10 @@ CREATE TABLE user (
     email VARCHAR(255) UNIQUE NOT NULL,
     role ENUM('Attendee', 'Organizer', 'Admin') NOT NULL 
         COMMENT 'Defines user type',
-    status ENUM('Active', 'Suspended') NOT NULL 
+    status ENUM('Active', 'Suspended') NOT NULL
         DEFAULT 'Active' COMMENT 'Indicates account status',
+    password_hash VARCHAR(255) DEFAULT NULL
+        COMMENT 'bcrypt hash; NULL for seeded/legacy accounts with no password login set',
     -- Ensures 'role' integrity
     CONSTRAINT CHK_UserRole CHECK (role IN ('Attendee', 'Organizer', 'Admin'))
 ) ENGINE=InnoDB;

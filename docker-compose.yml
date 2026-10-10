@@ -10,6 +10,8 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/docker-init/01b-seed-admin.sql:/docker-entrypoint-initdb.d/01b-seed-admin.sql:ro
+      - ./db/docker-init/01c-seed-test-user.sql:/docker-entrypoint-initdb.d/01c-seed-test-user.sql:ro
       - ./db/docker-init/02-triggers.sql:/docker-entrypoint-initdb.d/02-triggers.sql:ro
       - ./db/automation/procedures.sql:/docker-entrypoint-initdb.d/03-procedures.sql:ro
       - ./db/analysis/view.sql:/docker-entrypoint-initdb.d/04-view.sql:ro
@@ -37,6 +39,7 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
     ports:
       - "${API_PORT:-4000}:${API_PORT:-4000}"
     depends_on:
