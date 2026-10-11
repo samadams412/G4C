@@ -26,7 +26,7 @@ services:
       start_period: 30s
 
   api:
-    build: ./api
+    image: ghcr.io/samadams412/g4c-api:latest
     restart: unless-stopped
     environment:
       PORT: ${API_PORT:-4000}
@@ -45,10 +45,7 @@ services:
       - eventify
 
   web:
-    build:
-      context: ./web
-      args:
-        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+    image: ghcr.io/samadams412/g4c-web:latest
     restart: unless-stopped
     environment:
       PORT: ${WEB_PORT:-3000}
