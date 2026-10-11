@@ -140,3 +140,7 @@ vite.config.ts.timestamp-*
 
 # Ignore generated seed data files
 /seeds/*.sql
+
+CLAUDE.md
+
+docs\phase-writeups\*
