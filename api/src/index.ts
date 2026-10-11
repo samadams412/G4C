@@ -1,6 +1,7 @@
 import express from "express";
 import mysql from "mysql2/promise";
-import { loginHandler, requireAdmin } from "./auth";
+import Stripe from "stripe";
+import { authenticate, loginHandler, registerHandler, requireAdmin } from "./auth";
 
 const PORT = Number(process.env.PORT ?? 4000);
 
@@ -13,7 +14,81 @@ const pool = mysql.createPool({
   connectionLimit: 5,
 });
 
+const stripe = new Stripe(
+  process.env.STRIPE_SECRET_KEY ??
+    (() => {
+      throw new Error("STRIPE_SECRET_KEY is required");
+    })()
+);
+const STRIPE_WEBHOOK_SECRET: string =
+  process.env.STRIPE_WEBHOOK_SECRET ??
+  (() => {
+    throw new Error("STRIPE_WEBHOOK_SECRET is required");
+  })();
+
 const app = express();
+
+// Stripe needs the raw request body to verify the webhook signature, so this
+// route is registered before the global express.json() below.
+app.post("/webhooks/stripe", express.raw({ type: "application/json" }), async (req, res) => {
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, req.headers["stripe-signature"] as string, STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    return res.status(400).json({ error: "invalid signature" });
+  }
+
+  if (event.type !== "payment_intent.succeeded" && event.type !== "payment_intent.payment_failed") {
+    return res.status(200).json({ received: true });
+  }
+
+  const paymentIntentId = (event.data.object as Stripe.PaymentIntent).id;
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [orderRows] = await connection.query(
+      "SELECT order_id, status, reservation_expires_at < NOW() AS expired FROM orders WHERE stripe_payment_intent_id = ? FOR UPDATE",
+      [paymentIntentId]
+    );
+    const order = (orderRows as { order_id: number; status: string; expired: number }[])[0];
+    if (!order || order.status !== "Pending") {
+      // Unknown order, or already finalized by a prior delivery of this webhook — no-op.
+      await connection.rollback();
+      return res.status(200).json({ received: true });
+    }
+
+    if (event.type === "payment_intent.succeeded" && order.expired) {
+      // The reservation's TTL already expired before Stripe told us the charge
+      // succeeded, so the capacity count has long since treated this spot as
+      // free, and another order may already have taken it. Granting the
+      // ticket now could oversell the event, so refund the charge and release
+      // the reservation instead of silently finalizing it.
+      console.error(
+        `order ${order.order_id}: payment_intent.succeeded arrived after its reservation expired — refunding ${paymentIntentId} instead of finalizing, to avoid overselling the event`
+      );
+      await stripe.refunds.create({ payment_intent: paymentIntentId });
+      await connection.query("UPDATE orders SET status = 'Refunded' WHERE order_id = ?", [order.order_id]);
+      await connection.query("UPDATE ticket SET status = 'Refunded' WHERE order_id = ?", [order.order_id]);
+    } else if (event.type === "payment_intent.succeeded") {
+      await connection.query("UPDATE orders SET status = 'Completed' WHERE order_id = ?", [order.order_id]);
+      await connection.query("UPDATE ticket SET status = 'Purchased' WHERE order_id = ?", [order.order_id]);
+    } else {
+      await connection.query("UPDATE orders SET status = 'Refunded' WHERE order_id = ?", [order.order_id]);
+      await connection.query("UPDATE ticket SET status = 'Refunded' WHERE order_id = ?", [order.order_id]);
+    }
+
+    await connection.commit();
+    res.status(200).json({ received: true });
+  } catch (err) {
+    await connection.rollback();
+    console.error(err);
+    res.status(500).json({ error: "internal error" });
+  } finally {
+    connection.release();
+  }
+});
+
 app.use(express.json());
 
 app.use((req, _res, next) => {
@@ -35,6 +110,7 @@ app.get("/health", async (_req, res) => {
 });
 
 app.post("/auth/login", loginHandler(pool));
+app.post("/auth/register", registerHandler(pool));
 
 // Verification-only route for requireAdmin; no event/ticket/venue/category endpoints here.
 app.get("/admin/ping", requireAdmin, (req, res) => {
@@ -109,8 +185,26 @@ app.get("/events", async (req, res) => {
       [...params, pageSize, (page - 1) * pageSize]
     );
 
+    const events = rows as { event_id: number }[];
+    const eventIds = events.map((e) => e.event_id);
+    const categoriesByEvent = new Map<number, { category_id: number; name: string }[]>();
+    if (eventIds.length > 0) {
+      const [categoryRows] = await pool.query(
+        `SELECT ec.event_id, c.category_id, c.name
+         FROM event_category ec
+         JOIN category c ON c.category_id = ec.category_id
+         WHERE ec.event_id IN (?)`,
+        [eventIds]
+      );
+      for (const row of categoryRows as { event_id: number; category_id: number; name: string }[]) {
+        const list = categoriesByEvent.get(row.event_id) ?? [];
+        list.push({ category_id: row.category_id, name: row.name });
+        categoriesByEvent.set(row.event_id, list);
+      }
+    }
+
     res.status(200).json({
-      data: rows,
+      data: events.map((e) => ({ ...e, categories: categoriesByEvent.get(e.event_id) ?? [] })),
       page,
       pageSize,
       total,
@@ -222,6 +316,7 @@ app.get("/categories", async (_req, res) => {
 });
 
 app.get("/tickets", async (req, res) => {
+  const { event_id } = req.query;
   const page = Number(req.query.page ?? 1);
   const pageSize = Number(req.query.pageSize ?? 20);
 
@@ -231,17 +326,23 @@ app.get("/tickets", async (req, res) => {
   if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
     return badRequest(res, "pageSize must be an integer between 1 and 100");
   }
+  if (event_id !== undefined && Number.isNaN(Number(event_id))) {
+    return badRequest(res, "event_id must be a numeric event_id");
+  }
+
+  const whereClause = event_id !== undefined ? "WHERE event_id = ?" : "";
+  const params = event_id !== undefined ? [Number(event_id)] : [];
 
   try {
-    const [countRows] = await pool.query("SELECT COUNT(*) AS total FROM ticket");
+    const [countRows] = await pool.query(`SELECT COUNT(*) AS total FROM ticket ${whereClause}`, params);
     const total = (countRows as { total: number }[])[0].total;
 
     const [rows] = await pool.query(
       `SELECT ticket_id, order_id, event_id, user_id, price, status
-       FROM ticket
+       FROM ticket ${whereClause}
        ORDER BY ticket_id ASC
        LIMIT ? OFFSET ?`,
-      [pageSize, (page - 1) * pageSize]
+      [...params, pageSize, (page - 1) * pageSize]
     );
 
     res.status(200).json({ data: rows, page, pageSize, total });
@@ -487,6 +588,179 @@ app.post("/tickets", requireAdmin, async (req, res) => {
     if (err?.code === "ER_DUP_ENTRY") {
       return badRequest(res, "ticket_id already exists");
     }
+    console.error(err);
+    res.status(500).json({ error: "internal error" });
+  }
+});
+
+// Attendee-facing self-service purchase: unlike POST /tickets above, this
+// never accepts a caller-supplied user_id or price, creates its own order,
+// and locks the event row for the duration of the capacity check + insert so
+// two concurrent purchases for the same event can't both succeed past
+// capacity.
+//
+// This reserves spots rather than issuing tickets outright: it creates a
+// Stripe PaymentIntent and inserts 'Reserved' tickets against a 'Pending'
+// order in the same transaction. The order's reservation_expires_at gives
+// the reservation a TTL — the capacity count below treats an expired
+// Reserved ticket as free, so a stuck PaymentIntent doesn't block the event
+// forever even without a cleanup job. POST /webhooks/stripe finalizes
+// (payment_intent.succeeded) or releases (payment_intent.payment_failed) the
+// reservation once Stripe reports back.
+const MAX_TICKETS_PER_PURCHASE = 8;
+const RESERVATION_TTL_MINUTES = 15;
+
+app.post("/tickets/purchase", authenticate, async (req, res) => {
+  const { event_id, quantity } = req.body ?? {};
+
+  if (!Number.isInteger(event_id) || event_id < 1) {
+    return badRequest(res, "event_id must be a positive integer");
+  }
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_TICKETS_PER_PURCHASE) {
+    return badRequest(res, `quantity must be an integer between 1 and ${MAX_TICKETS_PER_PURCHASE}`);
+  }
+
+  const userId = req.user!.user_id;
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [userRows] = await connection.query("SELECT status FROM user WHERE user_id = ?", [userId]);
+    const user = (userRows as { status: string }[])[0];
+    if (!user) {
+      await connection.rollback();
+      return badRequest(res, "user account no longer exists");
+    }
+    if (user.status === "Suspended") {
+      await connection.rollback();
+      return res.status(403).json({ error: "this account is suspended and cannot purchase tickets" });
+    }
+
+    const [eventRows] = await connection.query(
+      "SELECT status, capacity FROM event WHERE event_id = ? FOR UPDATE",
+      [event_id]
+    );
+    const event = (eventRows as { status: string; capacity: number }[])[0];
+    if (!event) {
+      await connection.rollback();
+      return badRequest(res, "event_id does not reference an existing event");
+    }
+    if (event.status !== "Published") {
+      await connection.rollback();
+      return badRequest(res, "this event isn't open for ticket sales");
+    }
+
+    const [countRows] = await connection.query(
+      `SELECT COUNT(*) AS sold FROM ticket t
+       JOIN orders o ON o.order_id = t.order_id
+       WHERE t.event_id = ?
+         AND (t.status = 'Purchased' OR (t.status = 'Reserved' AND o.reservation_expires_at > NOW()))`,
+      [event_id]
+    );
+    const sold = (countRows as { sold: number }[])[0].sold;
+    const remaining = event.capacity - sold;
+    if (quantity > remaining) {
+      await connection.rollback();
+      return badRequest(
+        res,
+        remaining <= 0 ? "this event is sold out" : `only ${remaining} spot${remaining === 1 ? "" : "s"} left`
+      );
+    }
+
+    const [priceRows] = await connection.query(
+      "SELECT MIN(price) AS min_price FROM ticket WHERE event_id = ? AND status != 'Refunded'",
+      [event_id]
+    );
+    const minPrice = (priceRows as { min_price: string | null }[])[0].min_price;
+    if (minPrice === null) {
+      await connection.rollback();
+      return badRequest(res, "ticket pricing hasn't been set for this event yet");
+    }
+    const pricePerTicket = Number(minPrice);
+    const totalAmount = Math.round(pricePerTicket * quantity * 100) / 100;
+
+    const [orderResult] = await connection.query(
+      `INSERT INTO orders (user_id, total_amount, status, reservation_expires_at)
+       VALUES (?, ?, 'Pending', DATE_ADD(NOW(), INTERVAL ? MINUTE))`,
+      [userId, totalAmount, RESERVATION_TTL_MINUTES]
+    );
+    const orderId = (orderResult as { insertId: number }).insertId;
+
+    const ticketIds: string[] = [];
+    for (let i = 0; i < quantity; i++) {
+      const ticketId = `TKT-${orderId}-${i + 1}-${Math.random().toString(36).slice(2, 8)}`;
+      await connection.query(
+        "INSERT INTO ticket (ticket_id, order_id, event_id, user_id, price, status) VALUES (?, ?, ?, ?, ?, 'Reserved')",
+        [ticketId, orderId, event_id, userId, pricePerTicket, "Reserved"]
+      );
+      ticketIds.push(ticketId);
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(totalAmount * 100),
+      currency: "usd",
+      // No frontend to redirect back to here (CLI/API-only flow), so disallow
+      // redirect-based payment methods rather than requiring a return_url.
+      automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+      metadata: { order_id: String(orderId), event_id: String(event_id) },
+    });
+
+    await connection.query("UPDATE orders SET stripe_payment_intent_id = ? WHERE order_id = ?", [
+      paymentIntent.id,
+      orderId,
+    ]);
+
+    await connection.commit();
+    res.status(201).json({
+      order_id: orderId,
+      ticket_ids: ticketIds,
+      price_per_ticket: pricePerTicket,
+      total_amount: totalAmount,
+      quantity,
+      client_secret: paymentIntent.client_secret,
+      payment_intent_id: paymentIntent.id,
+      reserved_until: new Date(Date.now() + RESERVATION_TTL_MINUTES * 60_000).toISOString(),
+    });
+  } catch (err) {
+    await connection.rollback();
+    console.error(err);
+    res.status(500).json({ error: "internal error" });
+  } finally {
+    connection.release();
+  }
+});
+
+// Lets the purchaser (or an admin) poll whether a reservation has been
+// finalized yet — the frontend uses this to wait for POST /webhooks/stripe
+// to land rather than trusting the client-side Stripe confirmation alone.
+app.get("/orders/:id", authenticate, async (req, res) => {
+  const orderId = Number(req.params.id);
+  if (!Number.isInteger(orderId) || orderId < 1) {
+    return badRequest(res, "id must be a positive integer");
+  }
+
+  try {
+    const [orderRows] = await pool.query(
+      "SELECT order_id, user_id, status, total_amount FROM orders WHERE order_id = ?",
+      [orderId]
+    );
+    const order = (orderRows as { order_id: number; user_id: number; status: string; total_amount: string }[])[0];
+    if (!order) {
+      return res.status(404).json({ error: "order not found" });
+    }
+    if (order.user_id !== req.user!.user_id && req.user!.role !== "Admin") {
+      return res.status(403).json({ error: "not your order" });
+    }
+
+    const [ticketRows] = await pool.query("SELECT ticket_id, status FROM ticket WHERE order_id = ?", [orderId]);
+
+    res.status(200).json({
+      order_id: order.order_id,
+      status: order.status,
+      total_amount: Number(order.total_amount),
+      tickets: ticketRows,
+    });
+  } catch (err) {
     console.error(err);
     res.status(500).json({ error: "internal error" });
   }

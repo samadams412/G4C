@@ -1,0 +1,28 @@
+# Use this file (renamed to eventify.conf) BEFORE the first certbot run,
+# when no TLS certificate exists yet. See docs/phase-writeups/phase-8-deployment-runbook.md.
+server {
+    listen 80;
+    server_name eventify.social www.eventify.social;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        proxy_pass http://web:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Stripe webhooks go straight to the api container, not through the
+    # Next.js app (which has no route for this path).
+    location /webhooks/ {
+        proxy_pass http://api:4000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

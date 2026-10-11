@@ -114,6 +114,8 @@ CREATE TABLE orders (
     total_amount DECIMAL(10, 2) NOT NULL,
     order_date DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
     status ENUM('Pending', 'Completed', 'Refunded') NOT NULL,
+    stripe_payment_intent_id VARCHAR(255) UNIQUE COMMENT 'Stripe PaymentIntent id; set when a reservation is created',
+    reservation_expires_at DATETIME COMMENT 'Reserved tickets on this order free up after this time if payment never completes',
 
     -- Foreign Key
     CONSTRAINT FK_OrderUser FOREIGN KEY (user_id) REFERENCES user(user_id) ON DELETE RESTRICT,

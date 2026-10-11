@@ -1,0 +1,92 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/docker-init/01b-seed-admin.sql:/docker-entrypoint-initdb.d/01b-seed-admin.sql:ro
+      - ./db/docker-init/01c-seed-test-user.sql:/docker-entrypoint-initdb.d/01c-seed-test-user.sql:ro
+      - ./db/docker-init/02-triggers.sql:/docker-entrypoint-initdb.d/02-triggers.sql:ro
+      - ./db/automation/procedures.sql:/docker-entrypoint-initdb.d/03-procedures.sql:ro
+      - ./db/analysis/view.sql:/docker-entrypoint-initdb.d/04-view.sql:ro
+      - ./db/dummy_data.sql:/docker-entrypoint-initdb.d/05-dummy_data.sql:ro
+    networks:
+      - eventify
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  api:
+    build: ./api
+    restart: unless-stopped
+    environment:
+      PORT: ${API_PORT:-4000}
+      DB_HOST: db
+      DB_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - eventify
+
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+    restart: unless-stopped
+    environment:
+      PORT: ${WEB_PORT:-3000}
+      API_URL: http://api:${API_PORT:-4000}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - api
+    networks:
+      - eventify
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot_conf:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+    depends_on:
+      - web
+      - api
+    networks:
+      - eventify
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    # No restart policy and no command here on purpose: certbot is run on demand
+    # (initial issuance, renewal) via `docker compose run`, see the runbook.
+
+networks:
+  eventify:
+
+volumes:
+  db_data:
+  certbot_conf:
+  certbot_www:

@@ -40,6 +40,8 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
     ports:
       - "${API_PORT:-4000}:${API_PORT:-4000}"
     depends_on:
@@ -49,11 +51,15 @@ services:
       - eventify
 
   web:
-    build: ./web
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
     restart: unless-stopped
     environment:
       PORT: ${WEB_PORT:-3000}
       API_URL: http://api:${API_PORT:-4000}
+      JWT_SECRET: ${JWT_SECRET}
     ports:
       - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
     depends_on:
