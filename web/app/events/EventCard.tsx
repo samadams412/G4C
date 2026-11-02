@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { EventSummary } from "@/lib/api";
-import { badgeColorFor, cardAccentFor } from "@/lib/colors";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -10,25 +9,15 @@ function formatDate(iso: string) {
   });
 }
 
-export default function EventCard({
-  event,
-  accentIndex,
-}: {
-  event: EventSummary;
-  accentIndex: number;
-}) {
-  const accent = cardAccentFor(accentIndex);
-
+export default function EventCard({ event }: { event: EventSummary }) {
   return (
     <Link href={`/events/${event.event_id}`}>
-      <article
-        className={`flex flex-col gap-3 rounded-3xl border-[3px] bg-white p-5 transition-transform hover:-translate-y-1 ${accent}`}
-      >
+      <article className="flex flex-col gap-3 rounded-3xl bg-surface-container p-5 transition-transform hover:-translate-y-1">
         <div className="flex flex-wrap gap-2">
           {event.categories.map((category) => (
             <span
               key={category.category_id}
-              className={`rounded-full px-3 py-1 text-xs font-bold ${badgeColorFor(category.name)}`}
+              className="rounded-full bg-secondary-container px-3 py-1 text-xs font-bold text-on-secondary-container"
             >
               {category.name}
             </span>
