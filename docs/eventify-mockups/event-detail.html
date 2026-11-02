@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eventify — Event detail &amp; checkout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0; font-family: var(--font-sans); background: var(--color-background); color: var(--color-on-background);}
+  a{color: var(--color-primary); text-decoration:none;}
+  button{font-family: var(--font-sans); cursor:pointer;}
+  .wrap{width:100%; max-width:1280px; margin:0 auto;}
+  .nav{display:flex; align-items:center; justify-content:space-between; padding:20px 48px; border-bottom:1px solid var(--color-outline-variant);}
+  .logo{font:600 24px/1 var(--font-display); color: var(--color-primary);}
+  .navlinks{display:flex; align-items:center; gap:28px;}
+  .navlinks a{font:500 14px/20px var(--font-sans);}
+  .cta{background: var(--color-primary); color: var(--color-on-primary); border:none; border-radius:8px; padding:10px 20px; font:500 14px/20px var(--font-sans);}
+  .layout{padding:24px 48px 64px; display:flex; flex-wrap:wrap; gap:32px; align-items:flex-start;}
+  .left{flex:999 1 560px; min-width:0; display:flex; flex-direction:column; gap:20px;}
+  .back{display:flex; align-items:center; gap:6px; font:500 14px/20px var(--font-sans); color: var(--color-primary); width:fit-content;}
+  .hero{width:100%; height:280px; border-radius:16px; background: var(--color-primary-container); display:flex; align-items:center; justify-content:center;}
+  .tag{display:inline-block; font:500 12px/16px var(--font-sans); padding:4px 12px; border-radius:999px; background: var(--color-secondary-container); color: var(--color-on-secondary-container); width:fit-content;}
+  h1{margin:0; font:600 32px/40px var(--font-display); color: var(--color-on-background);}
+  .infocard{background: var(--color-surface-container); border-radius:12px; padding:18px 20px; display:flex; flex-direction:column; gap:6px;}
+  .infoline{display:flex; align-items:center; gap:10px; font:500 15px/22px var(--font-sans); color: var(--color-on-surface);}
+  .infoline.muted{font:400 14px/20px var(--font-sans); color: var(--color-on-surface-variant);}
+  .desc{margin:0; font:400 16px/26px var(--font-sans); color: var(--color-on-surface);}
+  .right{flex:1 1 360px; min-width:320px; position:sticky; top:24px;}
+  .panel{background: var(--color-surface-container-high); border-radius:16px; padding:24px; display:flex; flex-direction:column; gap:16px;}
+  .panelhead{display:flex; align-items:center; justify-content:space-between;}
+  .panelhead h2{margin:0; font:500 20px/26px var(--font-sans); color: var(--color-on-surface);}
+  .badge{font:500 12px/16px var(--font-sans); padding:4px 10px; border-radius:999px; background: var(--color-tertiary-container); color: var(--color-on-tertiary-container);}
+  .progress{height:6px; border-radius:999px; background: var(--color-surface-variant); overflow:hidden;}
+  .progress-fill{width:35%; height:100%; background: var(--color-tertiary);}
+  .spots{font:400 13px/18px var(--font-sans); color: var(--color-on-surface-variant);}
+  .tiers{display:flex; flex-direction:column; gap:10px;}
+  .tier{display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-radius:12px; cursor:pointer; background: var(--color-surface-container-lowest); border:2px solid transparent;}
+  .tier.selected{background: var(--color-surface-container-highest); border:2px solid var(--color-primary);}
+  .tier-name{font:500 15px/20px var(--font-sans); color: var(--color-on-surface);}
+  .tier-blurb{font:400 13px/18px var(--font-sans); color: var(--color-on-surface-variant);}
+  .tier-price{font:600 16px/22px var(--font-sans); color: var(--color-on-surface);}
+  .qtyrow{display:flex; align-items:center; justify-content:space-between; padding-top:8px; border-top:1px solid var(--color-outline-variant);}
+  .stepper{display:flex; align-items:center; gap:14px;}
+  .stepbtn{width:32px; height:32px; border-radius:8px; border:1px solid var(--color-outline); background: var(--color-surface-container-lowest); font:600 16px/1 var(--font-sans); color: var(--color-on-surface); display:flex; align-items:center; justify-content:center;}
+  .totalrow{display:flex; align-items:center; justify-content:space-between;}
+  .totalrow span:first-child{font:500 15px/22px var(--font-sans); color: var(--color-on-surface);}
+  .totalrow span:last-child{font:600 22px/28px var(--font-sans); color: var(--color-on-surface);}
+  .reserve{background: var(--color-primary); color: var(--color-on-primary); border:none; border-radius:8px; padding:14px 20px; font:500 15px/22px var(--font-sans); width:100%;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <span class="logo">Eventify</span>
+    <div class="navlinks">
+      <a href="browse.html">Events</a>
+      <a href="#" style="color:var(--color-on-surface-variant);">My tickets</a>
+      <a href="#" style="color:var(--color-on-surface-variant);">Log in</a>
+      <button class="cta">Register</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="left">
+      <a class="back" href="browse.html">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        Back to events
+      </a>
+
+      <div class="hero">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--color-on-primary-container)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"></path>
+          <path d="M16 3v4M8 3v4M4 11h16"></path>
+        </svg>
+      </div>
+
+      <span class="tag">Food Festival</span>
+      <h1>San Marcos Street Food Festival</h1>
+
+      <div class="infocard">
+        <div class="infoline">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Monday, November 23, 2026 at 9:30 PM
+        </div>
+        <div class="infoline muted">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-on-surface-variant)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          San Marcos Theater, 167 Rebecca Turnpike, San Marcos
+        </div>
+      </div>
+
+      <p class="desc">San Marcos welcomes San Marcos Street Food Festival to San Marcos Theater. VIP tasting passes include early entry and a chef's table — sample dishes from dozens of local vendors and food trucks.</p>
+    </div>
+
+    <div class="right">
+      <div class="panel">
+        <div class="panelhead">
+          <h2>Tickets</h2>
+          <span class="badge">Selling fast</span>
+        </div>
+        <div class="progress"><div class="progress-fill"></div></div>
+        <span class="spots">401 of 1143 spots taken</span>
+
+        <div class="tiers" id="tiers"></div>
+
+        <div class="qtyrow">
+          <span style="font:500 14px/20px var(--font-sans); color: var(--color-on-surface);">Quantity</span>
+          <div class="stepper">
+            <button class="stepbtn" id="dec" aria-label="Decrease quantity">&minus;</button>
+            <span id="qty" style="font:600 16px/22px var(--font-sans); min-width:16px; text-align:center;">1</span>
+            <button class="stepbtn" id="inc" aria-label="Increase quantity">+</button>
+          </div>
+        </div>
+
+        <div class="totalrow"><span>Total</span><span id="total">$43.37</span></div>
+
+        <button class="reserve" id="cta">Reserve 1 ticket for $43.37</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TIERS = [
+  {id:"ga", name:"General admission", blurb:"Standard entry", price:43.37},
+  {id:"vip", name:"VIP tasting pass", blurb:"Early entry + chef's table", price:145.00}
+];
+let selectedTier = "ga";
+let quantity = 1;
+
+const tiersEl = document.getElementById("tiers");
+const qtyEl = document.getElementById("qty");
+const totalEl = document.getElementById("total");
+const ctaEl = document.getElementById("cta");
+
+function render() {
+  tiersEl.innerHTML = "";
+  TIERS.forEach((t) => {
+    const div = document.createElement("div");
+    div.className = "tier" + (t.id === selectedTier ? " selected" : "");
+    div.innerHTML = `
+      <div>
+        <div class="tier-name">${t.name}</div>
+        <div class="tier-blurb">${t.blurb}</div>
+      </div>
+      <div class="tier-price">$${t.price.toFixed(2)}</div>
+    `;
+    div.onclick = () => { selectedTier = t.id; render(); };
+    tiersEl.appendChild(div);
+  });
+
+  const tier = TIERS.find((t) => t.id === selectedTier);
+  const total = tier.price * quantity;
+  qtyEl.textContent = quantity;
+  totalEl.textContent = "$" + total.toFixed(2);
+  ctaEl.textContent = `Reserve ${quantity} ticket${quantity > 1 ? "s" : ""} for $${total.toFixed(2)}`;
+}
+
+document.getElementById("inc").onclick = () => { quantity = Math.min(quantity + 1, 8); render(); };
+document.getElementById("dec").onclick = () => { quantity = Math.max(quantity - 1, 1); render(); };
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eventify — Browse &amp; discover</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0; font-family: var(--font-sans); background: var(--color-background); color: var(--color-on-background);}
+  a{color: var(--color-primary); text-decoration:none;}
+  button{font-family: var(--font-sans); cursor:pointer;}
+  .wrap{width:100%; max-width:1280px; margin:0 auto;}
+  .nav{display:flex; align-items:center; justify-content:space-between; padding:20px 48px; border-bottom:1px solid var(--color-outline-variant);}
+  .logo{font:600 24px/1 var(--font-display); color: var(--color-primary);}
+  .navlinks{display:flex; align-items:center; gap:28px;}
+  .navlinks a{font:500 14px/20px var(--font-sans);}
+  .cta{background: var(--color-primary); color: var(--color-on-primary); border:none; border-radius:8px; padding:10px 20px; font:500 14px/20px var(--font-sans);}
+  .hero{padding:48px 48px 32px; display:flex; flex-direction:column; gap:8px;}
+  .hero h1{margin:0; font:600 36px/44px var(--font-display); color: var(--color-on-background);}
+  .hero p{margin:0; font:400 16px/24px var(--font-sans); color: var(--color-on-surface-variant);}
+  .chips{padding:0 48px 32px; display:flex; flex-wrap:wrap; gap:10px;}
+  .chip{font:500 14px/20px var(--font-sans); padding:10px 18px; border-radius:999px; background:transparent; border:1px solid var(--color-outline); color: var(--color-on-surface);}
+  .chip.active{border:1px solid transparent; background: var(--color-secondary-container); color: var(--color-on-secondary-container);}
+  .grid{padding:0 48px 64px; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:20px;}
+  @media (max-width:900px){ .grid{grid-template-columns:repeat(2, minmax(0,1fr));} }
+  @media (max-width:600px){ .grid{grid-template-columns:1fr;} .nav{flex-wrap:wrap; gap:12px;} }
+  .card{background: var(--color-surface-container); border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:10px;}
+  .tag{display:inline-block; font:500 12px/16px var(--font-sans); padding:4px 12px; border-radius:999px; background: var(--color-secondary-container); color: var(--color-on-secondary-container); width:fit-content;}
+  .card h3{margin:0; font:500 20px/26px var(--font-display); color: var(--color-on-surface);}
+  .card p{margin:0; font:400 14px/20px var(--font-sans); color: var(--color-on-surface-variant);}
+  .row{display:flex; align-items:center; justify-content:space-between; margin-top:8px;}
+  .date{font:500 13px/18px var(--font-sans); color: var(--color-primary);}
+  .price{font:600 14px/20px var(--font-sans); color: var(--color-on-surface);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <span class="logo">Eventify</span>
+    <div class="navlinks">
+      <a href="#">Events</a>
+      <a href="#" style="color:var(--color-on-surface-variant);">My tickets</a>
+      <a href="#" style="color:var(--color-on-surface-variant);">Log in</a>
+      <button class="cta">Register</button>
+    </div>
+  </div>
+
+  <div class="hero">
+    <h1>Upcoming events</h1>
+    <p>Find something happening near San Antonio.</p>
+  </div>
+
+  <div class="chips" id="chips"></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const CATS = ["All","Music","Food Festival","Tech Conference","Workshop","Comedy","Sport"];
+const EVENTS = [
+  {title:"San Marcos Street Food Festival", category:"Food Festival", venue:"San Marcos Theater · San Marcos", date:"Mon, Nov 23", price:"$18–$65"},
+  {title:"AI & Automation Expo", category:"Tech Conference", venue:"San Antonio Community Center · San Antonio", date:"Mon, Jan 18", price:"$0–$120"},
+  {title:"Watercolor Painting Workshop", category:"Workshop", venue:"Universal City Theater · Universal City", date:"Wed, Dec 23", price:"$35"},
+  {title:"Young Presents: Laugh Fest", category:"Comedy", venue:"San Marcos Theater · San Marcos", date:"Fri, Jan 1", price:"$25–$55"},
+  {title:"Golden Parade: Acoustic Session", category:"Music", venue:"San Marcos Auditorium · San Marcos", date:"Mon, Apr 5", price:"$30–$85"},
+  {title:"San Antonio 5K Run", category:"Sport", venue:"San Antonio Community Center · San Antonio", date:"Sat, Apr 10", price:"$20"}
+];
+
+let selected = "All";
+const chipsEl = document.getElementById("chips");
+const gridEl = document.getElementById("grid");
+
+function render() {
+  chipsEl.innerHTML = "";
+  CATS.forEach((cat) => {
+    const btn = document.createElement("button");
+    btn.className = "chip" + (cat === selected ? " active" : "");
+    btn.textContent = cat;
+    btn.onclick = () => { selected = cat; render(); };
+    chipsEl.appendChild(btn);
+  });
+
+  gridEl.innerHTML = "";
+  EVENTS.filter((ev) => selected === "All" || ev.category === selected).forEach((ev) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <span class="tag">${ev.category}</span>
+      <h3>${ev.title}</h3>
+      <p>${ev.venue}</p>
+      <div class="row"><span class="date">${ev.date}</span><span class="price">${ev.price}</span></div>
+    `;
+    gridEl.appendChild(card);
+  });
+}
+render();
+</script>
+</body>
+</html>
