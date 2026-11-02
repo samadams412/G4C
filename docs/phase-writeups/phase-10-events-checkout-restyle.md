@@ -124,6 +124,14 @@ Every text pair above was computed against WCAG AA. The lowest is
   - Pay with an empty card showed Stripe's errors in `error` color and the inline
     `error-container` message. No charge was attempted. Cancel returned to select.
 
+### CI font failure
+
+The first CI run of `build-web` failed with the `next/font` error Phase 9 saw
+locally (`Cannot read properties of null (reading '1')`, from `app/layout.tsx`,
+which this phase didn't change). A rerun of the same commit passed. This is the
+first time it has hit CI, and the cause is still unknown, so it will probably
+recur. A dropped Google Fonts response is the likely cause, but that's unconfirmed.
+
 ### Not exercised
 
 - **No real payment ran.** The pending, done, failed and sold-out states weren't
