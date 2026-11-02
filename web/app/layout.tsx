@@ -1,10 +1,10 @@
 import "./globals.css";
 import type { ReactNode } from "react";
-import { Fredoka, Nunito } from "next/font/google";
+import { Fraunces, Public_Sans } from "next/font/google";
 import Nav from "./Nav";
 
-const fredoka = Fredoka({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-heading" });
-const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700"], variable: "--font-body" });
+const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" });
+const publicSans = Public_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-sans" });
 
 export const metadata = {
   title: "Eventify",
@@ -12,8 +12,8 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${nunito.variable}`}>
-      <body className="bg-cream font-body text-ink">
+    <html lang="en" className={`${fraunces.variable} ${publicSans.variable}`}>
+      <body className="bg-background font-body text-on-background">
         <Nav />
         {children}
       </body>

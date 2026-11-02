@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getEvent, getEventTickets } from "@/lib/api";
-import { badgeColorFor, cardAccentForId } from "@/lib/colors";
 import { getSessionUser } from "@/lib/session";
 import PurchaseTickets from "./PurchaseTickets";
 
@@ -48,8 +47,6 @@ export default async function EventDetailPage({ params }: { params: { id: string
   const remaining = Math.max(0, event.capacity - spotsTaken);
   const soldOut = remaining <= 0;
 
-  const cardAccent = cardAccentForId(event.event_id);
-
   return (
     <main className="min-h-screen bg-cream px-6 py-12">
       <div className="mx-auto max-w-3xl">
@@ -62,7 +59,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
           {event.categories.map((category) => (
             <span
               key={category.category_id}
-              className={`rounded-full px-3 py-1 text-xs font-bold ${badgeColorFor(category.name)}`}
+              className="rounded-full bg-secondary-container px-3 py-1 text-xs font-bold text-on-secondary-container"
             >
               {category.name}
             </span>
@@ -76,7 +73,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
 
         <h1 className="mb-6 mt-3 font-heading text-4xl font-bold text-ink">{event.title}</h1>
 
-        <div className={`mb-6 flex flex-col gap-2 rounded-3xl border-[3px] bg-white p-5 ${cardAccent}`}>
+        <div className="mb-6 flex flex-col gap-2 rounded-3xl bg-surface-container p-5">
           <p className="font-heading text-sm font-medium text-sky">{formatDateTime(event.start_time)}</p>
           <p className="text-sm text-slate-600">
             {event.venue.name}
