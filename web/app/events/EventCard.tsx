@@ -12,7 +12,7 @@ function formatDate(iso: string) {
 export default function EventCard({ event }: { event: EventSummary }) {
   return (
     <Link href={`/events/${event.event_id}`}>
-      <article className="flex flex-col gap-3 rounded-radius-md bg-surface-container p-space-16 transition-transform hover:-translate-y-1">
+      <article className="flex flex-col gap-3 rounded-radius-md bg-surface-container p-space-16 transition-transform hover:-translate-y-1 motion-reduce:transition-none">
         <div className="flex flex-wrap gap-2">
           {event.categories.map((category) => (
             <span
