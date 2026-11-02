@@ -43,17 +43,6 @@ module.exports = {
         scrim: "#000000",
         shadow: "#000000",
         "surface-tint": "#9D3D00",
-
-        // TODO: Phase 10 - delete once events, login, register, account and
-        // LogoutButton are migrated; without these their classes generate no CSS.
-        cream: "#FFF7ED",
-        ink: "#1C1917",
-        coral: "#F97316",
-        pink: "#EC4899",
-        teal: "#0D9488",
-        violet: "#7C3AED",
-        sky: "#2563EB",
-        amber: "#F59E0B",
       },
       fontFamily: {
         heading: ["var(--font-display)", "Georgia", "serif"],

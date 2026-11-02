@@ -3,7 +3,7 @@ import LoginForm from "./LoginForm";
 
 export default function LoginPage() {
   return (
-    <main className="min-h-screen bg-cream px-6 py-12">
+    <main className="min-h-screen bg-background px-6 py-12">
       <Suspense>
         <LoginForm />
       </Suspense>

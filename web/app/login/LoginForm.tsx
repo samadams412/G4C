@@ -40,43 +40,43 @@ export default function LoginForm() {
 
   return (
     <div className="mx-auto max-w-md">
-      <h1 className="mb-6 font-heading text-3xl font-bold text-ink">Log in</h1>
+      <h1 className="mb-6 font-heading text-headline-large text-on-background">Log in</h1>
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col gap-4 rounded-3xl border-[3px] border-violet/30 bg-white p-6"
+        className="flex flex-col gap-4 rounded-radius-md bg-surface-container p-6"
       >
-        {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+        {error && <p className="rounded-radius-sm bg-error-container px-3 py-2 text-body-medium text-on-error-container">{error}</p>}
+        <label className="flex flex-col gap-1 text-label-large text-on-surface">
           Email
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-xl border-2 border-slate-200 px-3 py-2 focus:border-violet focus:outline-none"
+            className="rounded-radius-sm border-2 border-outline bg-surface-container-lowest px-3 py-2 text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm font-medium text-ink">
+        <label className="flex flex-col gap-1 text-label-large text-on-surface">
           Password
           <input
             type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded-xl border-2 border-slate-200 px-3 py-2 focus:border-violet focus:outline-none"
+            className="rounded-radius-sm border-2 border-outline bg-surface-container-lowest px-3 py-2 text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </label>
         <button
           type="submit"
           disabled={submitting}
-          className="mt-2 rounded-full bg-violet px-4 py-2 font-heading font-bold text-white disabled:opacity-50"
+          className="mt-2 rounded-radius-sm bg-primary px-4 py-2 text-label-large text-on-primary disabled:opacity-50"
         >
           {submitting ? "Logging in…" : "Log in"}
         </button>
       </form>
-      <p className="mt-4 text-sm text-slate-600">
+      <p className="mt-4 text-body-medium text-on-surface-variant">
         Need an account?{" "}
-        <Link href="/register" className="font-bold text-violet">
+        <Link href="/register" className="text-label-large text-primary">
           Register
         </Link>
       </p>
