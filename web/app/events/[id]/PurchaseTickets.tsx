@@ -16,14 +16,20 @@ type Step =
 const STRIPE_APPEARANCE = {
   theme: "stripe" as const,
   variables: {
-    colorPrimary: "#7C3AED", // violet
-    colorBackground: "#FFF7ED", // cream
-    colorText: "#1C1917", // ink
-    colorDanger: "#DC2626",
-    fontFamily: "var(--font-body), sans-serif",
-    borderRadius: "12px",
+    colorPrimary: "#9D3D00", // primary
+    colorBackground: "#FFF4F0", // background
+    colorText: "#4A2507", // on-surface
+    colorDanger: "#B02500", // error
+    fontFamily: '"Public Sans", system-ui, -apple-system, sans-serif',
+    borderRadius: "8px", // radius-sm
   },
 };
+
+// Stripe's iframe can't see this page's CSS variables or next/font files, so
+// the family is named literally and loaded here.
+const STRIPE_FONTS = [
+  { cssSrc: "https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600&display=swap" },
+];
 
 // Polls GET /api/orders/:id rather than trusting the client-side Stripe
 // confirmation, since the ticket isn't actually Purchased until
@@ -59,7 +65,7 @@ export default function PurchaseTickets({
 
   if (step.name === "done") {
     return (
-      <div className="mt-4 rounded-xl border-2 border-teal bg-teal-50 px-4 py-3 text-sm font-medium text-ink">
+      <div className="mt-4 rounded-radius-sm border-2 border-primary bg-surface-container-highest px-4 py-3 text-title-small text-on-surface">
         {step.quantity} ticket{step.quantity === 1 ? "" : "s"} confirmed for ${step.total.toFixed(2)}.
       </div>
     );
@@ -68,13 +74,13 @@ export default function PurchaseTickets({
   if (step.name === "failed") {
     return (
       <div className="mt-4 flex flex-col gap-2">
-        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">
+        <p className="rounded-radius-sm bg-error-container px-3 py-2 text-body-medium text-on-error-container">
           That payment didn&apos;t go through, so we released your spot. No charge was made. Try again when
           you&apos;re ready.
         </p>
         <button
           onClick={() => setStep({ name: "select" })}
-          className="self-start rounded-full bg-violet px-4 py-2 font-heading font-bold text-white"
+          className="self-start rounded-radius-sm bg-primary px-4 py-2 text-label-large text-on-primary"
         >
           Try again
         </button>
@@ -84,8 +90,8 @@ export default function PurchaseTickets({
 
   if (step.name === "pending") {
     return (
-      <div className="mt-4 flex items-center gap-3 rounded-xl border-2 border-amber bg-amber-50 px-4 py-3 text-sm font-medium text-ink">
-        <span className="h-4 w-4 flex-none animate-spin rounded-full border-2 border-amber border-t-transparent" />
+      <div className="mt-4 flex items-center gap-3 rounded-radius-sm bg-tertiary-container px-4 py-3 text-title-small text-on-tertiary-container">
+        <span className="h-4 w-4 flex-none animate-spin rounded-radius-full border-2 border-on-tertiary-container border-t-transparent" />
         Confirming your payment now.
       </div>
     );
@@ -95,7 +101,7 @@ export default function PurchaseTickets({
     return (
       <Elements
         stripe={getStripe()}
-        options={{ clientSecret: step.clientSecret, appearance: STRIPE_APPEARANCE }}
+        options={{ clientSecret: step.clientSecret, appearance: STRIPE_APPEARANCE, fonts: STRIPE_FONTS }}
       >
         <CheckoutForm
           total={step.total}
@@ -110,11 +116,11 @@ export default function PurchaseTickets({
   }
 
   if (remaining <= 0) {
-    return <div className="mt-4 rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-600">Sold out</div>;
+    return <div className="mt-4 rounded-radius-sm bg-error-container px-4 py-3 text-title-small text-on-error-container">Sold out</div>;
   }
 
   if (pricePerTicket === null) {
-    return <p className="mt-4 text-sm text-slate-600">Ticket sales haven&apos;t opened for this event yet.</p>;
+    return <p className="mt-4 text-body-medium text-on-surface-variant">Ticket sales haven&apos;t opened for this event yet.</p>;
   }
 
   function pollOrder(orderId: number, total: number, quantity: number) {
@@ -176,16 +182,16 @@ export default function PurchaseTickets({
 
   return (
     <div className="mt-4 flex flex-col gap-3">
-      {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="rounded-radius-sm bg-error-container px-3 py-2 text-body-medium text-on-error-container">{error}</p>}
       <div className="flex items-center gap-3">
-        <label htmlFor="quantity" className="text-sm font-medium text-ink">
+        <label htmlFor="quantity" className="text-label-large text-on-surface">
           Tickets
         </label>
         <select
           id="quantity"
           value={quantity}
           onChange={(e) => setQuantity(Number(e.target.value))}
-          className="rounded-xl border-2 border-slate-200 px-3 py-2 focus:border-violet focus:outline-none"
+          className="rounded-radius-sm border-2 border-outline bg-surface-container-lowest px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
         >
           {Array.from({ length: maxQty }, (_, i) => i + 1).map((n) => (
             <option key={n} value={n}>
@@ -197,7 +203,7 @@ export default function PurchaseTickets({
       <button
         onClick={handleReserve}
         disabled={reserving}
-        className="rounded-full bg-violet px-4 py-2 font-heading font-bold text-white disabled:opacity-50"
+        className="rounded-radius-sm bg-primary px-4 py-2 text-label-large text-on-primary disabled:opacity-50"
       >
         {reserving
           ? "Reserving…"

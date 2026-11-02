@@ -25,10 +25,10 @@ export default function EventsList({
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setSelectedCategory(null)}
-          className={`rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+          className={`rounded-radius-full border px-4 py-2 text-label-large transition-colors ${
             selectedCategory === null
-              ? "bg-violet text-white"
-              : "bg-white text-ink hover:bg-violet/10"
+              ? "border-transparent bg-primary-container text-on-primary-container"
+              : "border-outline text-on-surface hover:bg-surface-container"
           }`}
         >
           All
@@ -37,10 +37,10 @@ export default function EventsList({
           <button
             key={category.category_id}
             onClick={() => setSelectedCategory(category.category_id)}
-            className={`rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+            className={`rounded-radius-full border px-4 py-2 text-label-large transition-colors ${
               selectedCategory === category.category_id
-                ? "bg-violet text-white"
-                : "bg-white text-ink hover:bg-violet/10"
+                ? "border-transparent bg-primary-container text-on-primary-container"
+                : "border-outline text-on-surface hover:bg-surface-container"
             }`}
           >
             {category.name}
@@ -49,11 +49,11 @@ export default function EventsList({
       </div>
 
       {filteredEvents.length === 0 ? (
-        <p className="rounded-3xl border-[3px] border-dashed border-amber bg-white/60 p-10 text-center font-heading text-lg text-ink/70">
+        <p className="rounded-radius-md bg-surface-container-low p-space-32 text-center text-title-medium text-on-surface-variant">
           No events match this category yet.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-space-16 sm:grid-cols-2 lg:grid-cols-3">
           {filteredEvents.map((event) => (
             <EventCard key={event.event_id} event={event} />
           ))}

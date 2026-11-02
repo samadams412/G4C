@@ -4,18 +4,6 @@ import { getEvent, getEventTickets } from "@/lib/api";
 import { getSessionUser } from "@/lib/session";
 import PurchaseTickets from "./PurchaseTickets";
 
-const BUNTING_COLORS = ["bg-coral", "bg-pink", "bg-teal", "bg-violet", "bg-sky", "bg-amber"];
-
-function BuntingDivider() {
-  return (
-    <div className="mb-8 flex h-1.5 overflow-hidden rounded-full">
-      {BUNTING_COLORS.map((color) => (
-        <div key={color} className={`h-full flex-1 ${color}`} />
-      ))}
-    </div>
-  );
-}
-
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
     weekday: "long",
@@ -48,34 +36,34 @@ export default async function EventDetailPage({ params }: { params: { id: string
   const soldOut = remaining <= 0;
 
   return (
-    <main className="min-h-screen bg-cream px-6 py-12">
+    <main className="min-h-screen bg-background px-6 py-12">
       <div className="mx-auto max-w-3xl">
-        <Link href="/events" className="mb-6 inline-block font-heading text-sm font-bold text-violet">
+        <Link href="/events" className="mb-6 inline-block text-label-large text-primary">
           ← Back to events
         </Link>
-        <BuntingDivider />
+        <hr className="mb-8 border-outline-variant" />
 
         <div className="flex flex-wrap items-center gap-2">
           {event.categories.map((category) => (
             <span
               key={category.category_id}
-              className="rounded-full bg-secondary-container px-3 py-1 text-xs font-bold text-on-secondary-container"
+              className="rounded-radius-full bg-secondary-container px-3 py-1 text-label-medium text-on-secondary-container"
             >
               {category.name}
             </span>
           ))}
           {event.status !== "Published" && (
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+            <span className="rounded-radius-full bg-surface-variant px-3 py-1 text-label-medium text-on-surface-variant">
               {event.status}
             </span>
           )}
         </div>
 
-        <h1 className="mb-6 mt-3 font-heading text-4xl font-bold text-ink">{event.title}</h1>
+        <h1 className="mb-6 mt-3 font-heading text-headline-large text-on-background">{event.title}</h1>
 
-        <div className="mb-6 flex flex-col gap-2 rounded-3xl bg-surface-container p-5">
-          <p className="font-heading text-sm font-medium text-sky">{formatDateTime(event.start_time)}</p>
-          <p className="text-sm text-slate-600">
+        <div className="mb-6 flex flex-col gap-2 rounded-radius-md bg-surface-container p-space-16">
+          <p className="text-title-medium text-on-surface">{formatDateTime(event.start_time)}</p>
+          <p className="text-body-medium text-on-surface-variant">
             {event.venue.name}
             {event.venue.address ? `, ${event.venue.address}` : ""}
             {event.venue.city ? `, ${event.venue.city}` : ""}
@@ -83,23 +71,23 @@ export default async function EventDetailPage({ params }: { params: { id: string
         </div>
 
         {event.description && (
-          <p className="mb-6 whitespace-pre-line text-base leading-relaxed text-slate-700">
+          <p className="mb-6 whitespace-pre-line text-body-large text-on-surface">
             {event.description}
           </p>
         )}
 
-        <div className="rounded-3xl border-[3px] border-teal/30 bg-white p-5">
-          <h2 className="mb-2 font-heading text-lg font-bold text-ink">Tickets</h2>
+        <div className="rounded-radius-lg bg-surface-container-high p-space-24">
+          <h2 className="mb-2 font-heading text-title-large text-on-surface">Tickets</h2>
           {minPrice === null ? (
-            <p className="text-sm text-slate-600">No tickets available yet.</p>
+            <p className="text-body-medium text-on-surface-variant">No tickets available yet.</p>
           ) : (
-            <p className="text-sm text-slate-600">
+            <p className="text-body-medium text-on-surface-variant">
               {minPrice === maxPrice
                 ? `$${minPrice.toFixed(2)} per ticket`
                 : `$${minPrice.toFixed(2)}–$${maxPrice!.toFixed(2)} per ticket`}
             </p>
           )}
-          <p className="mt-1 text-sm font-medium text-ink">
+          <p className={`mt-1 text-title-small ${soldOut ? "text-error" : "text-on-surface"}`}>
             {soldOut ? "Sold out" : `${spotsTaken} of ${event.capacity} spots taken`}
           </p>
           {event.status === "Published" && (
