@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import type { Category, EventSummary } from "@/lib/api";
 import EventCard from "./EventCard";
 
@@ -12,6 +13,7 @@ export default function EventsList({
   categories: Category[];
 }) {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const reduceMotion = useReducedMotion();
 
   const filteredEvents = useMemo(() => {
     if (selectedCategory === null) return events;
@@ -54,8 +56,22 @@ export default function EventsList({
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-space-16 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredEvents.map((event) => (
-            <EventCard key={event.event_id} event={event} />
+          {filteredEvents.map((event, i) => (
+            <motion.div
+              key={event.event_id}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              // Stagger across a row; reduced motion keeps the fade but drops the slide.
+              transition={{
+                duration: 0.4,
+                ease: "easeOut",
+                delay: (i % 3) * 0.08,
+                y: reduceMotion ? { duration: 0 } : undefined,
+              }}
+            >
+              <EventCard event={event} />
+            </motion.div>
           ))}
         </div>
       )}

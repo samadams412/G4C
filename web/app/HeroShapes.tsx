@@ -20,9 +20,10 @@ export default function HeroShapes() {
         <motion.div
           key={i}
           className={`absolute rounded-[40%] opacity-30 ${shape.color} ${shape.size} ${shape.pos}`}
+          // Same keys either way: `undefined` drops the server-rendered will-change and fails hydration.
           animate={
             reduceMotion
-              ? undefined
+              ? { y: 0, rotate: 0 }
               : { y: [0, -18, 0], rotate: [0, 8, 0] }
           }
           transition={{ duration: shape.duration, repeat: Infinity, ease: "easeInOut" }}
